@@ -1,53 +1,60 @@
 # MediaNFO
 
-一个绿色免安装的媒体库 NFO 生成工具，用于给电影 / 电视剧文件夹生成 [Kodi](https://kodi.tv/) / Emby / Jellyfin 兼容的 `.nfo` 文件，并按规范命名封面图片（poster.jpg、fanart.jpg 等）。
+A portable, GUI-based tool for generating and editing [Kodi](https://kodi.tv/) / Emby / Jellyfin compatible `.nfo` files for movies and TV shows. It also imports cover images and renames them to standard filenames (poster.jpg, fanart.jpg, etc.).
 
-基于 Python + Tkinter，不强制依赖 TMDB / IMDb，所有元数据均可手工填写或读取已有刮削信息后编辑。
+Built with Python + Tkinter. **No TMDB or IMDb required** — all metadata can be entered manually, or loaded from existing scraper NFO files and then edited.
 
-## 功能
+[中文文档](README_CN.md) · [Detailed Chinese manual (使用说明.md)](使用说明.md)
 
-- 新建 / 编辑电影与电视剧元数据，生成兼容主流媒体库的 NFO
-- 读取文件夹内已有的 NFO 刮削信息（不限文件名），回填表单后可直接编辑、修改、删除
-- 自动扫描视频 / 图片 / txt，导入封面并规范命名，从 txt 导入简介
-- 管理季数、集数与剧集列表，可按 SxxExx 文件名自动生成剧集
-- 电影 / 电视剧类型互相切换时保留已填写信息
+## Features
 
-## 从源码运行
+- Create and edit movie / TV show metadata and generate NFO files compatible with mainstream media libraries
+- Detect and read existing NFO scraper metadata (any filename), then edit, modify, or delete it
+- Scan folders for videos, images and TXT files; import covers with standardized names; import plot summaries from TXT
+- Manage season and episode counts and the episode list; auto-generate episodes from `SxxExx` filenames
+- Switch between movie and TV show modes while keeping all entered information
+- Import and preview images, rotate covers, and assign them to poster / fanart / banner and other slots
 
-需要 Windows + Python 3.9（64 位）。
+## Getting Started
+
+Requirements: **Windows + Python 3.9 (64-bit)**.
 
 ```bash
-# 1. 安装依赖
+# 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. 启动（两种方式任选）
-双击 "启动 MediaNFO.bat"
-# 或
+# 2. Launch (either way)
 python main.py
+# or double-click "启动 MediaNFO.bat"
 ```
 
-Windows 用户也可直接双击 `启动 MediaNFO.bat`，脚本会自动定位 Python 3.9。
+Windows users can simply double-click `启动 MediaNFO.bat`; the script automatically locates Python 3.9.
 
-## 快速上手
+## Quick Start
 
-1. 选择媒体文件夹，程序自动扫描内容并读取已有 NFO（未发现时用文件夹名作为标题）。
-2. 在表单中填写或修改标题、简介、演职员等信息。
-3. 点击「保存 NFO」，生成的文件会写回当前媒体文件夹。
+1. Select a media folder. The app scans it and loads any existing NFO (or uses the folder name as the title if none is found).
+2. Fill in or edit the title, plot, cast & crew, and other fields in the form.
+3. Click **Save NFO**. Files are written back into the media folder:
+   - TV show: `tvshow.nfo` + one `SxxExx.nfo` per episode
+   - Movie: `movie.nfo`
+   - Cover images named to Kodi / Emby / Jellyfin conventions (poster.jpg, fanart.jpg, ...)
 
-左侧「NFO 刮削信息」列表会列出文件夹内所有 `.nfo`，可点选读取或删除。详细说明见 [使用说明.md](使用说明.md)。
+The **NFO Scraper Info** list on the left shows all `.nfo` files in the folder — click one to load it into the form, or delete it. See [使用说明.md](使用说明.md) for the full Chinese manual.
 
-## 文件结构
+## Project Structure
 
-| 文件 | 说明 |
+| File | Description |
 | --- | --- |
-| `main.py` | 程序入口 |
-| `ui.py` | 主界面（扫描、表单、剧集/演职员管理、图片与简介导入） |
-| `media.py` | 图片与文本处理 |
-| `models.py` | 数据模型（电影 / 电视剧 / 剧集 / 人物） |
-| `nfo.py` | NFO 生成、解析与刮削信息扫描 |
-| `使用说明.md` | 中文详细使用说明 |
-| `启动 MediaNFO.bat` | Windows 一键启动脚本 |
+| `main.py` | Application entry point |
+| `ui.py` | Main GUI (scanning, form, episode/cast management, image & synopsis import) |
+| `media.py` | Image and text processing |
+| `models.py` | Data models (movie / TV show / episode / person) |
+| `nfo.py` | NFO generation, parsing and scraper metadata discovery |
+| `README.md` | English overview (this file) |
+| `README_CN.md` | Chinese overview |
+| `使用说明.md` | Detailed Chinese user manual |
+| `启动 MediaNFO.bat` | Windows one-click launcher |
 
-## 许可
+## License
 
-仅供个人学习与使用。
+For personal learning and use only.
