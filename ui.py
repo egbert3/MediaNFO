@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
-"""主界面：文件夹扫描、元数据表单、剧集/演职员管理、图片封面与简介导入。"""
+"""主界面：文件夹扫描、元数据表单、剧集/演职员管理、图片封面与简介导入。
+
+支持中文 / English 双语界面（见 i18n.py）。
+"""
 import os
 import re
 import sys
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
+import i18n
+from i18n import t
 from models import Movie, TVShow, Episode, Person, IMAGE_SLOTS, IMAGE_SLOT_NAMES
 import nfo
 import media
@@ -28,7 +33,7 @@ COMMON_FIELDS = [
 class ActorDialog(tk.Toplevel):
     def __init__(self, parent, actor=None):
         super().__init__(parent)
-        self.title("演职员")
+        self.title(t("actor_title"))
         self.transient(parent)
         self.resizable(False, False)
         self.result = None
@@ -36,17 +41,17 @@ class ActorDialog(tk.Toplevel):
 
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
-        ttk.Label(frm, text="姓名：", font=FONT).grid(row=0, column=0, sticky="e", pady=4)
+        ttk.Label(frm, text=t("name"), font=FONT).grid(row=0, column=0, sticky="e", pady=4)
         self.name = tk.StringVar(value=actor.name)
         ttk.Entry(frm, textvariable=self.name, width=30, font=FONT).grid(row=0, column=1, pady=4)
-        ttk.Label(frm, text="角色：", font=FONT).grid(row=1, column=0, sticky="e", pady=4)
+        ttk.Label(frm, text=t("role"), font=FONT).grid(row=1, column=0, sticky="e", pady=4)
         self.role = tk.StringVar(value=actor.role)
         ttk.Entry(frm, textvariable=self.role, width=30, font=FONT).grid(row=1, column=1, pady=4)
 
         btns = ttk.Frame(frm)
         btns.grid(row=2, column=0, columnspan=2, pady=(12, 0))
-        ttk.Button(btns, text="确定", command=self.ok).pack(side="right", padx=4)
-        ttk.Button(btns, text="取消", command=self.destroy).pack(side="right", padx=4)
+        ttk.Button(btns, text=t("ok"), command=self.ok).pack(side="right", padx=4)
+        ttk.Button(btns, text=t("cancel"), command=self.destroy).pack(side="right", padx=4)
         self.grab_set()
         self.name_entry_focus()
 
@@ -56,7 +61,7 @@ class ActorDialog(tk.Toplevel):
     def ok(self):
         name = self.name.get().strip()
         if not name:
-            messagebox.showwarning("提示", "姓名不能为空", parent=self)
+            messagebox.showwarning(t("hint"), t("name_required"), parent=self)
             return
         self.result = Person(name=name, role=self.role.get().strip())
         self.destroy()
@@ -65,7 +70,7 @@ class ActorDialog(tk.Toplevel):
 class EpisodeDialog(tk.Toplevel):
     def __init__(self, parent, episode=None, videos=None):
         super().__init__(parent)
-        self.title("剧集信息")
+        self.title(t("episode_title"))
         self.transient(parent)
         self.resizable(False, False)
         self.result = None
@@ -84,39 +89,40 @@ class EpisodeDialog(tk.Toplevel):
         self.video = tk.StringVar(value=ep.filename)
 
         rows = [
-            ("季 (Season)：", self.season),
-            ("集 (Episode)：", self.episode),
-            ("标题：", self.titlev),
-            ("首播日期：", self.date),
-            ("时长(分钟)：", self.runtime),
+            (t("season_label"), self.season),
+            (t("episode_label"), self.episode),
+            (t("title_label"), self.titlev),
+            (t("premiered"), self.date),
+            (t("runtime_min"), self.runtime),
         ]
         for i, (label, var) in enumerate(rows):
             ttk.Label(frm, text=label, font=FONT).grid(row=i, column=0, sticky="e", pady=3)
             ttk.Entry(frm, textvariable=var, width=32, font=FONT).grid(row=i, column=1, pady=3)
 
-        ttk.Label(frm, text="视频文件：", font=FONT).grid(row=5, column=0, sticky="e", pady=3)
+        ttk.Label(frm, text=t("video_file"), font=FONT).grid(row=5, column=0, sticky="e", pady=3)
         vframe = ttk.Frame(frm)
         vframe.grid(row=5, column=1, sticky="w", pady=3)
         ttk.Entry(vframe, textvariable=self.video, width=24, font=FONT).pack(side="left")
         ttk.Button(vframe, text="...", width=3,
                    command=self.pick_video).pack(side="left", padx=3)
 
-        ttk.Label(frm, text="简介：", font=FONT).grid(row=6, column=0, sticky="ne", pady=3)
+        ttk.Label(frm, text=t("plot_label"), font=FONT).grid(row=6, column=0, sticky="ne", pady=3)
         self.plot.grid(row=6, column=1, pady=3)
         if ep.plot:
             self.plot.insert("1.0", ep.plot)
 
         btns = ttk.Frame(frm)
         btns.grid(row=7, column=0, columnspan=2, pady=(12, 0))
-        ttk.Button(btns, text="确定", command=self.ok).pack(side="right", padx=4)
-        ttk.Button(btns, text="取消", command=self.destroy).pack(side="right", padx=4)
+        ttk.Button(btns, text=t("ok"), command=self.ok).pack(side="right", padx=4)
+        ttk.Button(btns, text=t("cancel"), command=self.destroy).pack(side="right", padx=4)
         self.grab_set()
 
     def pick_video(self):
         path = filedialog.askopenfilename(
             parent=self,
-            filetypes=[("视频文件", "*.mkv *.mp4 *.avi *.mov *.ts *.m2ts *.wmv *.flv *.webm *.rmvb *.m4v"),
-                       ("所有文件", "*.*")])
+            filetypes=[(t("video_files_filter"),
+                        "*.mkv *.mp4 *.avi *.mov *.ts *.m2ts *.wmv *.flv *.webm *.rmvb *.m4v"),
+                       (t("all_files_filter"), "*.*")])
         if path:
             self.video.set(os.path.basename(path))
 
@@ -143,7 +149,11 @@ class EpisodeDialog(tk.Toplevel):
 class App:
     def __init__(self, root):
         self.root = root
-        self.root.title("MediaNFO 媒体元数据编辑器")
+        # 语言偏好配置放在程序目录
+        config_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "config.json")
+        i18n.init(config_path)
+        self.root.title(t("app_title"))
         self.root.geometry("1120x760")
         self.root.minsize(980, 640)
 
@@ -174,7 +184,7 @@ class App:
         self._build_body()
         self._build_status()
         self.populate_form()
-        self.set_status("就绪。请选择媒体文件夹，或新建电影 / 电视剧。")
+        self.set_status(t("status_ready"))
 
     # ---------- 构建 ----------
 
@@ -182,24 +192,34 @@ class App:
         bar = ttk.Frame(self.root, padding=(8, 8))
         bar.pack(fill="x")
 
-        ttk.Button(bar, text="选择文件夹", command=self.select_folder).pack(side="left", padx=2)
-        ttk.Button(bar, text="重新读取", command=self.reload_folder).pack(side="left", padx=2)
+        ttk.Button(bar, text=t("select_folder"), command=self.select_folder).pack(side="left", padx=2)
+        ttk.Button(bar, text=t("reload"), command=self.reload_folder).pack(side="left", padx=2)
         ttk.Separator(bar, orient="vertical").pack(side="left", fill="y", padx=6)
-        ttk.Button(bar, text="新建电影", command=lambda: self.new_media("movie")).pack(side="left", padx=2)
-        ttk.Button(bar, text="新建电视剧", command=lambda: self.new_media("tvshow")).pack(side="left", padx=2)
-        self.switch_btn = ttk.Button(bar, text="切换为电视剧", command=self.toggle_mode)
+        ttk.Button(bar, text=t("new_movie"), command=lambda: self.new_media("movie")).pack(side="left", padx=2)
+        ttk.Button(bar, text=t("new_tvshow"), command=lambda: self.new_media("tvshow")).pack(side="left", padx=2)
+        self.switch_btn = ttk.Button(bar, text=t("switch_to_tvshow"), command=self.toggle_mode)
         self.switch_btn.pack(side="left", padx=2)
-        ttk.Button(bar, text="打开 NFO", command=self.open_nfo).pack(side="left", padx=2)
-        ttk.Button(bar, text="保存 NFO", command=self.save_nfo).pack(side="left", padx=2)
+        ttk.Button(bar, text=t("open_nfo"), command=self.open_nfo).pack(side="left", padx=2)
+        ttk.Button(bar, text=t("save_nfo"), command=self.save_nfo).pack(side="left", padx=2)
         ttk.Separator(bar, orient="vertical").pack(side="left", fill="y", padx=6)
-        self.mode_label = ttk.Label(bar, text="当前：电影", font=BOLD, foreground="#2d6cdf")
+        self.mode_label = ttk.Label(bar, text="", font=BOLD, foreground="#2d6cdf")
         self.mode_label.pack(side="right", padx=6)
-        ttk.Button(bar, text="关于", command=self.show_about).pack(side="right", padx=2)
+
+        # 语言选择
+        self.lang_var = tk.StringVar()
+        self.lang_combo = ttk.Combobox(
+            bar, textvariable=self.lang_var, values=["中文", "English"],
+            state="readonly", width=8, font=FONT)
+        self.lang_combo.set("English" if i18n.get_language() == i18n.LANG_EN else "中文")
+        self.lang_combo.bind("<<ComboboxSelected>>", self.on_language_change)
+        self.lang_combo.pack(side="right", padx=4)
+        ttk.Label(bar, text=t("language"), font=FONT).pack(side="right", padx=(4, 0))
+        ttk.Button(bar, text=t("about"), command=self.show_about).pack(side="right", padx=2)
 
         fbar = ttk.Frame(self.root, padding=(8, 0, 8, 6))
         fbar.pack(fill="x")
-        ttk.Label(fbar, text="媒体文件夹：", font=FONT).pack(side="left")
-        self.folder_var = tk.StringVar()
+        ttk.Label(fbar, text=t("media_folder"), font=FONT).pack(side="left")
+        self.folder_var = tk.StringVar(value=self.folder)
         ttk.Entry(fbar, textvariable=self.folder_var, font=FONT).pack(
             side="left", fill="x", expand=True, padx=4)
 
@@ -208,11 +228,11 @@ class App:
         body.pack(fill="both", expand=True)
 
         # 左侧文件面板
-        left = ttk.LabelFrame(body, text="当前文件夹内容", padding=6)
+        left = ttk.LabelFrame(body, text=t("folder_contents"), padding=6)
         left.pack(side="left", fill="y", padx=(0, 6))
         left.configure(width=250)
 
-        ttk.Label(left, text="图片：", font=BOLD).pack(anchor="w")
+        ttk.Label(left, text=t("images_section"), font=BOLD).pack(anchor="w")
         self.image_list = tk.Listbox(left, height=7, width=30, font=FONT,
                                      selectmode=tk.SINGLE, exportselection=False)
         self.image_list.pack(fill="x", pady=(2, 4))
@@ -220,41 +240,41 @@ class App:
 
         thumb_frame = ttk.Frame(left)
         thumb_frame.pack(fill="x", pady=2)
-        self.thumb_label = tk.Label(thumb_frame, text="（选择图片预览）",
+        self.thumb_label = tk.Label(thumb_frame, text=t("select_image_preview"),
                                     width=24, height=10, relief="groove",
                                     background="#f2f2f2")
         self.thumb_label.pack(side="left")
 
         img_btns = ttk.Frame(left)
         img_btns.pack(fill="x", pady=4)
-        ttk.Button(img_btns, text="大图预览", command=self.preview_image).pack(fill="x", pady=2)
-        ttk.Button(img_btns, text="旋转 90°", command=self.rotate_image).pack(fill="x", pady=2)
-        ttk.Button(img_btns, text="删除图片", command=self.delete_image).pack(fill="x", pady=2)
+        ttk.Button(img_btns, text=t("big_preview"), command=self.preview_image).pack(fill="x", pady=2)
+        ttk.Button(img_btns, text=t("rotate_90"), command=self.rotate_image).pack(fill="x", pady=2)
+        ttk.Button(img_btns, text=t("delete_image"), command=self.delete_image).pack(fill="x", pady=2)
 
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=6)
-        ttk.Label(left, text="简介文档 (.txt)：", font=BOLD).pack(anchor="w")
+        ttk.Label(left, text=t("txt_section"), font=BOLD).pack(anchor="w")
         self.text_list = tk.Listbox(left, height=4, width=30, font=FONT,
                                     selectmode=tk.SINGLE, exportselection=False)
         self.text_list.pack(fill="x", pady=(2, 4))
-        ttk.Button(left, text="导入选中简介到简介框", command=self.import_synopsis).pack(fill="x", pady=2)
-        ttk.Button(left, text="预览简介", command=self.preview_text).pack(fill="x", pady=2)
+        ttk.Button(left, text=t("import_synopsis"), command=self.import_synopsis).pack(fill="x", pady=2)
+        ttk.Button(left, text=t("preview_synopsis"), command=self.preview_text).pack(fill="x", pady=2)
 
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=6)
-        ttk.Label(left, text="视频文件（用于剧集）：", font=BOLD).pack(anchor="w")
-        self.video_count_label = ttk.Label(left, text="0 个视频文件")
+        ttk.Label(left, text=t("videos_section"), font=BOLD).pack(anchor="w")
+        self.video_count_label = ttk.Label(left, text=t("video_count", n=0))
         self.video_count_label.pack(anchor="w", pady=2)
 
         ttk.Separator(left, orient="horizontal").pack(fill="x", pady=6)
-        ttk.Label(left, text="NFO 刮削信息（点选读取 / 可删除）：", font=BOLD).pack(anchor="w")
+        ttk.Label(left, text=t("nfo_section"), font=BOLD).pack(anchor="w")
         self.nfo_list = tk.Listbox(left, height=4, width=30, font=FONT,
                                    selectmode=tk.SINGLE, exportselection=False)
         self.nfo_list.pack(fill="x", pady=(2, 4))
         self.nfo_list.bind("<<ListboxSelect>>", self.on_nfo_select)
         nfo_btns = ttk.Frame(left)
         nfo_btns.pack(fill="x", pady=2)
-        ttk.Button(nfo_btns, text="读取选中", command=self.read_selected_nfo).pack(
+        ttk.Button(nfo_btns, text=t("read_selected"), command=self.read_selected_nfo).pack(
             side="left", fill="x", expand=True, padx=(0, 2))
-        ttk.Button(nfo_btns, text="删除选中", command=self.delete_selected_nfo).pack(
+        ttk.Button(nfo_btns, text=t("delete_selected"), command=self.delete_selected_nfo).pack(
             side="left", fill="x", expand=True, padx=(2, 0))
 
         # 右侧表单
@@ -263,13 +283,13 @@ class App:
         self.notebook = ttk.Notebook(right)
         self.notebook.pack(fill="both", expand=True)
 
-        self.tab_basic = self._add_scrollable_tab("基本信息")
-        self.tab_plot = self._add_scrollable_tab("简介与分类")
+        self.tab_basic = self._add_scrollable_tab(t("tab_basic"))
+        self.tab_plot = self._add_scrollable_tab(t("tab_plot"))
         self.tab_people = ttk.Frame(self.notebook)
-        self.notebook.add(self.tab_people, text="演职员")
+        self.notebook.add(self.tab_people, text=t("tab_people"))
         self.tab_episodes = ttk.Frame(self.notebook)
-        self.notebook.add(self.tab_episodes, text="剧集信息（电视剧）")
-        self.tab_images = self._add_scrollable_tab("图片与封面")
+        self.notebook.add(self.tab_episodes, text=t("tab_episodes"))
+        self.tab_images = self._add_scrollable_tab(t("tab_images"))
 
         self._build_basic_tab()
         self._build_plot_tab()
@@ -287,6 +307,47 @@ class App:
     def set_status(self, text):
         self.status_var.set(text)
         self.root.update_idletasks()
+
+    # ---------- 语言切换 ----------
+
+    def on_language_change(self, event=None):
+        """切换界面语言：保留当前数据，重建界面后恢复。"""
+        new_lang = i18n.LANG_EN if self.lang_var.get() == "English" else i18n.LANG_ZH
+        if new_lang == i18n.get_language():
+            return
+        # 先把表单当前内容收集到对象，避免丢失未提交输入
+        try:
+            self.collect_form()
+        except Exception:
+            pass
+        # 记录当前选项卡
+        try:
+            tab_idx = self.notebook.index(self.notebook.select())
+        except Exception:
+            tab_idx = 0
+
+        i18n.set_language(new_lang)
+        self.root.title(t("app_title"))
+
+        # 销毁全部界面控件后重建
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        self.vars = {}
+        self.texts = {}
+        self.slot_vars = {}
+        self.thumb_photo = None
+        self.preview_photo = None
+
+        self._build_toolbar()
+        self._build_body()
+        self._build_status()
+        self.populate_form()
+        self.scan_folder()
+        try:
+            self.notebook.select(tab_idx)
+        except Exception:
+            pass
+        self.set_status(t("status_ready"))
 
     def _add_scrollable_tab(self, title):
         container = ttk.Frame(self.notebook)
@@ -332,45 +393,45 @@ class App:
 
     def _build_basic_tab(self):
         p = self.tab_basic
-        frm = ttk.LabelFrame(p, text="标题与发行", padding=10)
+        frm = ttk.LabelFrame(p, text=t("title_release"), padding=10)
         frm.pack(fill="x", pady=6)
-        self.add_field(frm, "标题 *", "title", 0, 0, 34)
-        self.add_field(frm, "原标题", "originaltitle", 1, 0, 34)
-        self.add_field(frm, "排序标题", "sorttitle", 2, 0, 34)
-        self.add_field(frm, "年份", "year", 3, 0)
-        self.add_field(frm, "发行日期", "releasedate", 3, 2)
-        self.add_field(frm, "时长(分钟)", "runtime", 4, 0)
-        self.add_field(frm, "分级 MPAA", "mpaa", 4, 2)
-        self.add_field(frm, "国家/地区", "country", 5, 0)
-        self.add_field(frm, "工作室", "studio", 5, 2)
+        self.add_field(frm, t("title_field"), "title", 0, 0, 34)
+        self.add_field(frm, t("originaltitle"), "originaltitle", 1, 0, 34)
+        self.add_field(frm, t("sorttitle"), "sorttitle", 2, 0, 34)
+        self.add_field(frm, t("year"), "year", 3, 0)
+        self.add_field(frm, t("releasedate"), "releasedate", 3, 2)
+        self.add_field(frm, t("runtime"), "runtime", 4, 0)
+        self.add_field(frm, t("mpaa"), "mpaa", 4, 2)
+        self.add_field(frm, t("country"), "country", 5, 0)
+        self.add_field(frm, t("studio"), "studio", 5, 2)
 
-        frm2 = ttk.LabelFrame(p, text="评分与外部 ID（可选，不强制）", padding=10)
+        frm2 = ttk.LabelFrame(p, text=t("rating_ids"), padding=10)
         frm2.pack(fill="x", pady=6)
-        self.add_field(frm2, "评分", "rating", 0, 0)
-        self.add_field(frm2, "投票数", "votes", 0, 2)
+        self.add_field(frm2, t("rating"), "rating", 0, 0)
+        self.add_field(frm2, t("votes"), "votes", 0, 2)
         self.add_field(frm2, "IMDb ID", "imdb_id", 1, 0)
         self.add_field(frm2, "TMDB ID", "tmdb_id", 1, 2)
         self.add_field(frm2, "TVDB ID", "tvdb_id", 2, 0)
 
     def _build_plot_tab(self):
         p = self.tab_plot
-        self.add_text(p, "标语 / Tagline", "tagline", 0, height=2)
-        self.add_text(p, "简介 / Plot（可从 txt 导入）", "plot", 2, height=9)
-        self.add_text(p, "大纲 / Outline", "outline", 4, height=4)
-        self.add_text(p, "类型 / Genre（每行一个）", "genres", 6, height=4)
-        self.add_text(p, "标签 / Tag（每行一个）", "tags", 8, height=4)
+        self.add_text(p, t("tagline"), "tagline", 0, height=2)
+        self.add_text(p, t("plot_import"), "plot", 2, height=9)
+        self.add_text(p, t("outline"), "outline", 4, height=4)
+        self.add_text(p, t("genres"), "genres", 6, height=4)
+        self.add_text(p, t("tags"), "tags", 8, height=4)
 
     def _build_people_tab(self):
         p = self.tab_people
-        self.add_text(p, "导演（每行一位）", "directors", 0, height=3)
-        self.add_text(p, "编剧（每行一位）", "writers", 2, height=3)
+        self.add_text(p, t("directors"), "directors", 0, height=3)
+        self.add_text(p, t("writers"), "writers", 2, height=3)
 
-        frm = ttk.LabelFrame(p, text="演员", padding=8)
+        frm = ttk.LabelFrame(p, text=t("actors"), padding=8)
         frm.grid(row=4, column=0, columnspan=2, sticky="nsew", padx=4, pady=8)
         cols = ("name", "role")
         self.actor_tree = ttk.Treeview(frm, columns=cols, show="headings", height=10)
-        self.actor_tree.heading("name", text="姓名")
-        self.actor_tree.heading("role", text="角色")
+        self.actor_tree.heading("name", text=t("name").rstrip("：:"))
+        self.actor_tree.heading("role", text=t("role").rstrip("：:"))
         self.actor_tree.column("name", width=260)
         self.actor_tree.column("role", width=300)
         self.actor_tree.pack(side="left", fill="both", expand=True)
@@ -381,9 +442,9 @@ class App:
 
         btns = ttk.Frame(p)
         btns.grid(row=5, column=0, columnspan=2, sticky="w", padx=4, pady=4)
-        ttk.Button(btns, text="添加演员", command=self.add_actor).pack(side="left", padx=2)
-        ttk.Button(btns, text="编辑", command=self.edit_actor).pack(side="left", padx=2)
-        ttk.Button(btns, text="删除", command=self.delete_actor).pack(side="left", padx=2)
+        ttk.Button(btns, text=t("add_actor"), command=self.add_actor).pack(side="left", padx=2)
+        ttk.Button(btns, text=t("edit"), command=self.edit_actor).pack(side="left", padx=2)
+        ttk.Button(btns, text=t("delete"), command=self.delete_actor).pack(side="left", padx=2)
         p.columnconfigure(0, weight=1)
         p.columnconfigure(1, weight=1)
         p.rowconfigure(4, weight=1)
@@ -392,17 +453,17 @@ class App:
         p = self.tab_episodes
         top = ttk.Frame(p, padding=8)
         top.grid(row=0, column=0, sticky="ew")
-        self.add_field(top, "总季数", "season_count", 0, 0, 8)
-        self.add_field(top, "总集数", "episode_count", 0, 2, 8)
-        ttk.Button(top, text="从视频文件名生成剧集",
+        self.add_field(top, t("season_count"), "season_count", 0, 0, 8)
+        self.add_field(top, t("episode_count"), "episode_count", 0, 2, 8)
+        ttk.Button(top, text=t("gen_episodes"),
                    command=self.generate_episodes).grid(row=0, column=4, padx=4)
 
-        frm = ttk.LabelFrame(p, text="剧集列表（双击编辑）", padding=8)
+        frm = ttk.LabelFrame(p, text=t("episode_list"), padding=8)
         frm.grid(row=1, column=0, sticky="nsew", padx=8, pady=4)
         cols = ("season", "ep", "title", "video")
         self.ep_tree = ttk.Treeview(frm, columns=cols, show="headings", height=12)
-        for c, text, w in [("season", "季", 60), ("ep", "集", 60),
-                           ("title", "标题", 260), ("video", "视频文件", 240)]:
+        for c, text, w in [("season", t("col_season"), 60), ("ep", t("col_episode"), 60),
+                           ("title", t("col_title"), 260), ("video", t("col_video"), 240)]:
             self.ep_tree.heading(c, text=text)
             self.ep_tree.column(c, width=w)
         self.ep_tree.pack(side="left", fill="both", expand=True)
@@ -413,39 +474,38 @@ class App:
 
         btns = ttk.Frame(p)
         btns.grid(row=2, column=0, sticky="w", padx=8, pady=8)
-        ttk.Button(btns, text="添加一集", command=self.add_episode).pack(side="left", padx=2)
-        ttk.Button(btns, text="编辑", command=self.edit_episode).pack(side="left", padx=2)
-        ttk.Button(btns, text="删除", command=self.delete_episode).pack(side="left", padx=2)
-        ttk.Button(btns, text="按季/集排序", command=self.sort_episodes).pack(side="left", padx=2)
+        ttk.Button(btns, text=t("add_episode"), command=self.add_episode).pack(side="left", padx=2)
+        ttk.Button(btns, text=t("edit"), command=self.edit_episode).pack(side="left", padx=2)
+        ttk.Button(btns, text=t("delete"), command=self.delete_episode).pack(side="left", padx=2)
+        ttk.Button(btns, text=t("sort_episodes"), command=self.sort_episodes).pack(side="left", padx=2)
         p.columnconfigure(0, weight=1)
         p.rowconfigure(1, weight=1)
 
     def _build_images_tab(self):
         p = self.tab_images
-        ttk.Label(p, text="图片槽位（输入或导入文件名，将写入 NFO 供媒体库识别）",
-                  font=BOLD).pack(anchor="w", pady=4)
-        ttk.Label(p, text="规范命名：poster.jpg（主海报）、fanart.jpg（背景）、banner.jpg（横幅）等",
+        ttk.Label(p, text=t("slots_header"), font=BOLD).pack(anchor="w", pady=4)
+        ttk.Label(p, text=t("slots_naming"),
                   font=FONT, foreground="#666666").pack(anchor="w", pady=(0, 8))
 
-        frm = ttk.LabelFrame(p, text="封面槽位", padding=10)
+        frm = ttk.LabelFrame(p, text=t("cover_slots"), padding=10)
         frm.pack(fill="x")
         for i, (slot, cn) in enumerate(IMAGE_SLOTS):
             row = i
-            ttk.Label(frm, text="%s (%s)：" % (cn, slot), font=FONT).grid(
+            label = i18n.slot_label(slot, cn)
+            ttk.Label(frm, text="%s (%s)：" % (label, slot), font=FONT).grid(
                 row=row, column=0, sticky="e", padx=4, pady=3)
             var = tk.StringVar()
             self.slot_vars[slot] = var
             ttk.Entry(frm, textvariable=var, width=26, font=FONT).grid(
                 row=row, column=1, sticky="w", padx=4, pady=3)
-            ttk.Button(frm, text="从选中图片导入",
+            ttk.Button(frm, text=t("import_from_selected"),
                        command=lambda s=slot: self.import_cover(s)).grid(
                 row=row, column=2, padx=4, pady=3)
-            ttk.Button(frm, text="清除",
+            ttk.Button(frm, text=t("clear"),
                        command=lambda s=slot: self.clear_slot(s)).grid(
                 row=row, column=3, padx=4, pady=3)
 
-        note = ttk.Label(p, text="提示：先在左侧“当前文件夹内容”选中一张图片，再点对应槽位的“从选中图片导入”。\n"
-                                 "导入会把图片转换为 JPG 并按槽位命名（如 poster.jpg），原图不会删除。",
+        note = ttk.Label(p, text=t("images_note"),
                          font=FONT, foreground="#666666", justify="left")
         note.pack(anchor="w", pady=10)
 
@@ -483,24 +543,24 @@ class App:
 
         self.refresh_actor_tree()
         self.refresh_episode_tree()
-        self.mode_label.configure(
-            text="当前：%s" % ("电视剧" if self.mode == "tvshow" else "电影"))
+        mode_name = t("tvshow") if self.mode == "tvshow" else t("movie")
+        self.mode_label.configure(text=t("current_prefix", name=mode_name))
         self._sync_switch_btn()
 
     def _sync_switch_btn(self):
         """切换按钮显示目标类型。"""
         if hasattr(self, "switch_btn"):
-            self.switch_btn.configure(
-                text="切换为电影" if self.mode == "tvshow" else "切换为电视剧")
+            key = "switch_to_movie" if self.mode == "tvshow" else "switch_to_tvshow"
+            self.switch_btn.configure(text=t(key))
 
     def collect_form(self):
         m = self.current
         def g(key):
             return self.vars[key].get().strip() if key in self.vars else ""
-        def t(key):
+        def gt(key):
             return self.texts[key].get("1.0", tk.END).strip() if key in self.texts else ""
         def lines(key):
-            return [x.strip() for x in t(key).splitlines() if x.strip()]
+            return [x.strip() for x in gt(key).splitlines() if x.strip()]
 
         m.title = g("title")
         m.originaltitle = g("originaltitle")
@@ -516,9 +576,9 @@ class App:
         m.imdb_id = g("imdb_id")
         m.tmdb_id = g("tmdb_id")
         m.tvdb_id = g("tvdb_id")
-        m.tagline = t("tagline")
-        m.plot = t("plot")
-        m.outline = t("outline")
+        m.tagline = gt("tagline")
+        m.plot = gt("plot")
+        m.outline = gt("outline")
         m.genres = lines("genres")
         m.tags = lines("tags")
         m.directors = lines("directors")
@@ -539,7 +599,7 @@ class App:
     # ---------- 文件夹与模式 ----------
 
     def select_folder(self):
-        folder = filedialog.askdirectory(parent=self.root, title="选择媒体文件夹")
+        folder = filedialog.askdirectory(parent=self.root, title=t("select_folder_title"))
         if not folder:
             return
         self.load_folder(folder)
@@ -547,12 +607,9 @@ class App:
     def reload_folder(self):
         """重新扫描当前文件夹并重新读取其中的 NFO（丢弃未保存的表单修改）。"""
         if not self.folder:
-            messagebox.showinfo("提示", "请先选择媒体文件夹。", parent=self.root)
+            messagebox.showinfo(t("hint"), t("pick_first_folder"), parent=self.root)
             return
-        if not messagebox.askyesno(
-                "重新读取",
-                "将从文件夹重新扫描并读取 NFO，未保存的修改会丢失。\n是否继续？",
-                parent=self.root):
+        if not messagebox.askyesno(t("reload"), t("reload_confirm"), parent=self.root):
             return
         self.load_folder(self.folder)
 
@@ -576,17 +633,17 @@ class App:
                     self.current = obj
                     self.mode = obj.media_type
                     self.populate_form()
-                    self.set_status("已读取刮削信息：%s" % os.path.basename(nfo_path))
+                    self.set_status(t("loaded_scraper", name=os.path.basename(nfo_path)))
                     return
-                self.set_status("检测到剧集 NFO，但未自动载入（可用“打开 NFO”选择）")
+                self.set_status(t("ep_nfo_notice"))
             except Exception as e:
-                self.set_status("读取 NFO 失败：%s" % e)
+                self.set_status(t("read_nfo_failed", err=e))
         else:
             # 未发现 NFO：用文件夹名作为标题（对象与表单同步）
             default_title = os.path.basename(os.path.normpath(folder))
             self.current.title = default_title
             self.vars["title"].set(default_title)
-            self.set_status("已选择文件夹：%s（未发现 NFO，可新建）" % folder)
+            self.set_status(t("folder_selected", folder=folder))
 
     def scan_folder(self):
         self.image_files = media.list_images(self.folder)
@@ -600,18 +657,21 @@ class App:
         self.text_list.delete(0, tk.END)
         for p in self.text_files:
             self.text_list.insert(tk.END, os.path.basename(p))
-        self.video_count_label.configure(text="%d 个视频文件" % len(self.video_files))
+        self.video_count_label.configure(text=t("video_count", n=len(self.video_files)))
 
         # 列出 NFO 刮削信息：类型 + 文件名 + 标题
         self.nfo_list.delete(0, tk.END)
-        kind_cn = {"movie": "电影", "tvshow": "剧集", "episode": "单集", "unknown": "未知"}
+        kind_names = {
+            "movie": t("movie"), "tvshow": t("tvshow"),
+            "episode": t("episode_kind"), "unknown": t("unknown"),
+        }
         for info in self.nfo_files:
-            label = "[%s] %s" % (kind_cn.get(info["kind"], info["kind"]), info["name"])
+            label = "[%s] %s" % (kind_names.get(info["kind"], info["kind"]), info["name"])
             if info["title"]:
                 label += " - %s" % info["title"]
             self.nfo_list.insert(tk.END, label)
 
-        self.thumb_label.configure(image="", text="（选择图片预览）")
+        self.thumb_label.configure(image="", text=t("select_image_preview"))
         self.thumb_photo = None
 
     # ---------- NFO 刮削信息操作 ----------
@@ -632,7 +692,7 @@ class App:
     def read_selected_nfo(self):
         info = self.selected_nfo()
         if not info:
-            messagebox.showinfo("提示", "请先在左侧选中一个 NFO 文件。", parent=self.root)
+            messagebox.showinfo(t("hint"), t("pick_nfo_first"), parent=self.root)
             return
         self._load_nfo_path(info["path"])
 
@@ -641,25 +701,20 @@ class App:
         try:
             obj = nfo.parse_nfo(path)
         except Exception as e:
-            messagebox.showerror("读取失败", "解析 NFO 出错：\n%s" % e, parent=self.root)
+            messagebox.showerror(t("read_failed"), t("parse_nfo_error", err=e), parent=self.root)
             return
         if isinstance(obj, Episode):
-            messagebox.showinfo("提示",
-                                "这是单集 NFO，包含的是某一集的剧集信息。\n"
-                                "请打开主 NFO（tvshow.nfo）以载入整部剧集。",
-                                parent=self.root)
+            messagebox.showinfo(t("hint"), t("single_ep_nfo"), parent=self.root)
             return
         # 有未保存修改时先确认
         if self.current and self.current.title and not self._is_unchanged(obj):
-            if not messagebox.askyesno(
-                    "读取 NFO",
-                    "读取将用 NFO 内容覆盖当前表单（未保存的修改会丢失）。\n是否继续？",
-                    parent=self.root):
+            if not messagebox.askyesno(t("read_selected"), t("overwrite_confirm"),
+                                       parent=self.root):
                 return
         self.current = obj
         self.mode = obj.media_type
         self.populate_form()
-        self.set_status("已读取刮削信息：%s" % os.path.basename(path))
+        self.set_status(t("loaded_scraper", name=os.path.basename(path)))
 
     def _is_unchanged(self, new_obj):
         """简单判断当前表单是否仍等于新读取的对象（无未保存修改）。"""
@@ -669,49 +724,49 @@ class App:
     def delete_selected_nfo(self):
         info = self.selected_nfo()
         if not info:
-            messagebox.showinfo("提示", "请先在左侧选中一个 NFO 文件。", parent=self.root)
+            messagebox.showinfo(t("hint"), t("pick_nfo_first"), parent=self.root)
             return
         if not messagebox.askyesno(
-                "删除 NFO",
-                "确定删除这个 NFO 文件吗？\n\n%s\n\n此操作不可恢复。" % info["name"],
+                t("delete_nfo_title"),
+                t("delete_nfo_confirm", name=info["name"]),
                 parent=self.root):
             return
         try:
             os.remove(info["path"])
         except Exception as e:
-            messagebox.showerror("删除失败", str(e), parent=self.root)
+            messagebox.showerror(t("delete_failed"), str(e), parent=self.root)
             return
         # 若删的是当前正在编辑的 NFO，清掉关联路径避免覆盖到别处
         cur_path = getattr(self.current, "nfo_path", "")
         if cur_path and os.path.normcase(cur_path) == os.path.normcase(info["path"]):
             self.current.nfo_path = ""
         self.scan_folder()
-        self.set_status("已删除 NFO：%s" % info["name"])
+        self.set_status(t("nfo_deleted", name=info["name"]))
 
     def new_media(self, media_type):
         if self.current and self.current.title:
-            if not messagebox.askyesno("新建", "当前内容将被清空，确定新建吗？", parent=self.root):
+            if not messagebox.askyesno(t("new_confirm"), t("new_clear_confirm"), parent=self.root):
                 return
         self.mode = media_type
         self.current = Movie(folder=self.folder) if media_type == "movie" else TVShow(folder=self.folder)
         self.populate_form()
-        self.set_status("已新建%s，请填写信息后保存。" %
-                        ("电视剧" if media_type == "tvshow" else "电影"))
+        name = t("tvshow") if media_type == "tvshow" else t("movie")
+        self.set_status(t("new_created", name=name))
 
     def open_nfo(self):
         path = filedialog.askopenfilename(
             parent=self.root,
-            filetypes=[("NFO 文件", "*.nfo"), ("所有文件", "*.*")])
+            filetypes=[(t("open_nfo") + " (*.nfo)", "*.nfo"),
+                       (t("all_files_filter"), "*.*")])
         if not path:
             return
         try:
             obj = nfo.parse_nfo(path)
         except Exception as e:
-            messagebox.showerror("打开失败", "解析 NFO 出错：\n%s" % e, parent=self.root)
+            messagebox.showerror(t("open_failed"), t("parse_nfo_error", err=e), parent=self.root)
             return
         if isinstance(obj, Episode):
-            messagebox.showinfo("提示", "这是单集 NFO。请打开 tvshow.nfo 以载入整部剧集。",
-                                parent=self.root)
+            messagebox.showinfo(t("hint"), t("single_ep_nfo_short"), parent=self.root)
             return
         self.current = obj
         self.mode = obj.media_type
@@ -719,15 +774,15 @@ class App:
         self.folder_var.set(self.folder)
         self.scan_folder()
         self.populate_form()
-        self.set_status("已打开：%s" % path)
+        self.set_status(t("opened", path=path))
 
     def save_nfo(self):
         self.collect_form()
         if not self.current.title:
-            messagebox.showwarning("提示", "请先填写标题。", parent=self.root)
+            messagebox.showwarning(t("hint"), t("title_required"), parent=self.root)
             return
         if not self.current.folder:
-            folder = filedialog.askdirectory(parent=self.root, title="选择保存位置")
+            folder = filedialog.askdirectory(parent=self.root, title=t("select_save_title"))
             if not folder:
                 return
             self.current.folder = folder
@@ -742,14 +797,15 @@ class App:
                 paths = nfo.save_tvshow(self.current)
             else:
                 paths = [nfo.save_movie(self.current)]
-            self.set_status("已保存 %d 个 NFO 文件到：%s" % (len(paths), self.current.folder))
-            messagebox.showinfo("保存成功",
-                                "已生成 %d 个 NFO 文件：\n%s" %
-                                (len(paths), "\n".join(os.path.basename(p) for p in paths)),
-                                parent=self.root)
+            self.set_status(t("saved_status", n=len(paths), folder=self.current.folder))
+            messagebox.showinfo(
+                t("save_success"),
+                t("saved_msg", n=len(paths),
+                  files="\n".join(os.path.basename(p) for p in paths)),
+                parent=self.root)
             self.scan_folder()
         except Exception as e:
-            messagebox.showerror("保存失败", str(e), parent=self.root)
+            messagebox.showerror(t("save_failed"), str(e), parent=self.root)
 
     # ---------- 图片操作 ----------
 
@@ -768,44 +824,44 @@ class App:
             self.thumb_photo = tk.PhotoImage(file=thumb)
             self.thumb_label.configure(image=self.thumb_photo, text="")
         else:
-            self.thumb_label.configure(image="", text="预览失败")
+            self.thumb_label.configure(image="", text=t("preview_failed"))
 
     def preview_image(self):
         path = self.selected_image()
         if not path:
-            messagebox.showinfo("提示", "请先选择一张图片。", parent=self.root)
+            messagebox.showinfo(t("hint"), t("pick_image_first"), parent=self.root)
             return
         preview = media.make_preview(path)
         if not preview:
-            messagebox.showerror("错误", "无法预览该图片。", parent=self.root)
+            messagebox.showerror(t("error"), t("cannot_preview"), parent=self.root)
             return
         win = tk.Toplevel(self.root)
-        win.title("大图预览 - %s" % os.path.basename(path))
+        win.title(t("preview_win", name=os.path.basename(path)))
         win.transient(self.root)
         img = tk.PhotoImage(file=preview)
         label = tk.Label(win, image=img)
         label.pack(padx=10, pady=10)
         label.image = img
-        ttk.Label(win, text="%s  |  %s 像素" %
-                  (os.path.basename(path), media.image_size(path)), font=FONT).pack(pady=(0, 8))
+        ttk.Label(win, text=t("pixel_info", name=os.path.basename(path),
+                              size=media.image_size(path)), font=FONT).pack(pady=(0, 8))
 
     def import_cover(self, slot):
         path = self.selected_image()
         if not path:
-            messagebox.showinfo("提示", "请先在左侧选中一张图片。", parent=self.root)
+            messagebox.showinfo(t("hint"), t("pick_image_first"), parent=self.root)
             return
         if not self.current.folder:
-            messagebox.showinfo("提示", "请先选择媒体文件夹。", parent=self.root)
+            messagebox.showinfo(t("hint"), t("pick_first_folder"), parent=self.root)
             return
         dest = media.import_as_cover(path, self.current.folder, slot)
         if not dest:
-            messagebox.showerror("失败", "图片导入失败（格式可能不受支持）。", parent=self.root)
+            messagebox.showerror(t("failed"), t("import_failed"), parent=self.root)
             return
         name = os.path.basename(dest)
         self.current.set_image(slot, name)
         self.slot_vars[slot].set(name)
         self.scan_folder()
-        self.set_status("已将图片导入为封面：%s" % name)
+        self.set_status(t("imported_cover", name=name))
 
     def clear_slot(self, slot):
         self.current.set_image(slot, "")
@@ -814,30 +870,32 @@ class App:
     def rotate_image(self):
         path = self.selected_image()
         if not path:
-            messagebox.showinfo("提示", "请先选择一张图片。", parent=self.root)
+            messagebox.showinfo(t("hint"), t("pick_image_first"), parent=self.root)
             return
         base, ext = os.path.splitext(path)
         dest = base + "_rot" + ".jpg"
         result = media.rotate_copy(path, dest, 90)
         if result:
             self.scan_folder()
-            self.set_status("已旋转并另存为：%s" % os.path.basename(dest))
+            self.set_status(t("rotated_saved", name=os.path.basename(dest)))
         else:
-            messagebox.showerror("失败", "旋转失败。", parent=self.root)
+            messagebox.showerror(t("failed"), t("rotate_failed"), parent=self.root)
 
     def delete_image(self):
         path = self.selected_image()
         if not path:
-            messagebox.showinfo("提示", "请先选择一张图片。", parent=self.root)
+            messagebox.showinfo(t("hint"), t("pick_image_first"), parent=self.root)
             return
-        if not messagebox.askyesno("删除", "确定删除图片：\n%s\n（此操作不可恢复）" %
-                                   os.path.basename(path), parent=self.root):
+        if not messagebox.askyesno(
+                t("delete_image_title"),
+                t("delete_image_confirm", name=os.path.basename(path)),
+                parent=self.root):
             return
         if media.delete_file(path):
             self.scan_folder()
-            self.set_status("已删除：%s" % os.path.basename(path))
+            self.set_status(t("image_deleted", name=os.path.basename(path)))
         else:
-            messagebox.showerror("失败", "删除失败，文件可能被占用。", parent=self.root)
+            messagebox.showerror(t("failed"), t("image_delete_failed"), parent=self.root)
 
     # ---------- 简介操作 ----------
 
@@ -850,29 +908,29 @@ class App:
     def import_synopsis(self):
         path = self.selected_text()
         if not path:
-            messagebox.showinfo("提示", "请先在左侧选中一个 txt 文件。", parent=self.root)
+            messagebox.showinfo(t("hint"), t("pick_txt_first"), parent=self.root)
             return
         content = media.read_text(path)
         if not content.strip():
-            messagebox.showinfo("提示", "该 txt 文件没有可读取的内容。", parent=self.root)
+            messagebox.showinfo(t("hint"), t("txt_empty"), parent=self.root)
             return
         current = self.texts["plot"].get("1.0", tk.END).strip()
-        if current and not messagebox.askyesno("导入简介",
-                                               "简介框已有内容，是否用 txt 内容替换？",
+        if current and not messagebox.askyesno(t("import_synopsis_title"),
+                                               t("synopsis_replace"),
                                                parent=self.root):
             return
         self.texts["plot"].delete("1.0", tk.END)
         self.texts["plot"].insert("1.0", content)
-        self.set_status("已从 %s 导入简介。" % os.path.basename(path))
+        self.set_status(t("synopsis_imported", name=os.path.basename(path)))
 
     def preview_text(self):
         path = self.selected_text()
         if not path:
-            messagebox.showinfo("提示", "请先选中一个 txt 文件。", parent=self.root)
+            messagebox.showinfo(t("hint"), t("pick_txt_preview"), parent=self.root)
             return
         content = media.read_text(path)
         win = tk.Toplevel(self.root)
-        win.title("简介预览 - %s" % os.path.basename(path))
+        win.title(t("synopsis_preview_win", name=os.path.basename(path)))
         win.transient(self.root)
         txt = tk.Text(win, height=20, width=70, font=FONT, wrap="word")
         txt.pack(padx=10, pady=10, fill="both", expand=True)
@@ -896,7 +954,7 @@ class App:
     def edit_actor(self):
         sel = self.actor_tree.selection()
         if not sel:
-            messagebox.showinfo("提示", "请先选中一位演员。", parent=self.root)
+            messagebox.showinfo(t("hint"), t("pick_actor_first"), parent=self.root)
             return
         idx = self.actor_tree.index(sel[0])
         dlg = ActorDialog(self.root, self.current.actors[idx])
@@ -925,7 +983,7 @@ class App:
     def toggle_mode(self):
         """在电影 / 电视剧之间切换，保留所有已填写的信息。"""
         target_type = "movie" if self.mode == "tvshow" else "tvshow"
-        target_name = "电影" if target_type == "movie" else "电视剧"
+        target_name = t("movie") if target_type == "movie" else t("tvshow")
 
         # 先把表单当前内容收集到旧对象，确保未提交的输入也不丢失
         self.collect_form()
@@ -934,7 +992,6 @@ class App:
         # 构造新类型对象
         if target_type == "tvshow":
             new = TVShow(folder=self.folder)
-            # 继承旧的季/集数字段（如果有）
             new.season_count = getattr(old, "season_count", 0)
             new.episode_count = getattr(old, "episode_count", 0)
             new.episodes = list(getattr(old, "episodes", []))
@@ -958,12 +1015,12 @@ class App:
         self.current = new
         self.mode = target_type
         self.populate_form()
-        self.set_status("已切换为%s，原有信息已保留。" % target_name)
+        self.set_status(t("switched_kept", name=target_name))
 
     def _ensure_tvshow(self):
         if not isinstance(self.current, TVShow):
-            if not messagebox.askyesno("电视剧", "当前是电影模式，是否切换为电视剧并继续？",
-                                       parent=self.root):
+            if not messagebox.askyesno(t("tvshow_mode_confirm"),
+                                       t("switch_tv_confirm"), parent=self.root):
                 return False
             self.toggle_mode()
         return True
@@ -982,7 +1039,7 @@ class App:
             return
         sel = self.ep_tree.selection()
         if not sel:
-            messagebox.showinfo("提示", "请先选中一集。", parent=self.root)
+            messagebox.showinfo(t("hint"), t("pick_episode_first"), parent=self.root)
             return
         idx = self.ep_tree.index(sel[0])
         dlg = EpisodeDialog(self.root, self.current.episodes[idx], self.video_files)
@@ -1009,7 +1066,7 @@ class App:
         if not self._ensure_tvshow():
             return
         if not self.video_files:
-            messagebox.showinfo("提示", "当前文件夹没有找到视频文件。", parent=self.root)
+            messagebox.showinfo(t("hint"), t("no_videos"), parent=self.root)
             return
         episodes = []
         counter = 1
@@ -1023,10 +1080,10 @@ class App:
             episodes.append(Episode(season=season, episode=epnum,
                                     filename=name))
             counter += 1
-        if not messagebox.askyesno("生成剧集",
-                                   "从 %d 个视频文件生成 %d 集（未识别 SxxExx 的按 S01E01 起顺序编号）。\n"
-                                   "是否替换现有剧集列表？" % (len(self.video_files), len(episodes)),
-                                   parent=self.root):
+        if not messagebox.askyesno(
+                t("gen_episodes_title"),
+                t("gen_episodes_confirm", n=len(episodes)),
+                parent=self.root):
             return
         self.current.episodes = episodes
         self.current.season_count = max((e.season for e in episodes), default=0)
@@ -1034,23 +1091,12 @@ class App:
         self.vars["season_count"].set(str(self.current.season_count))
         self.vars["episode_count"].set(str(self.current.episode_count))
         self.refresh_episode_tree()
-        self.set_status("已从视频文件生成 %d 集。" % len(episodes))
+        self.set_status(t("episodes_generated", n=len(episodes)))
 
     # ---------- 关于 ----------
 
     def show_about(self):
-        messagebox.showinfo(
-            "关于 MediaNFO",
-            "MediaNFO 媒体元数据编辑器 v1.0\n\n"
-            "功能：\n"
-            "• 手动新建 / 编辑电影与电视剧元数据\n"
-            "• 生成兼容 Kodi / Emby / Jellyfin 的 .nfo 文件\n"
-            "• 读取已有 .nfo 回填表单\n"
-            "• 导入图片并自动命名为 poster/fanart 等封面\n"
-            "• 从 txt 导入简介，或手工录入\n"
-            "• 管理季数、集数与剧集列表\n\n"
-            "不强制依赖 TMDB / IMDb，全部可手工填写。",
-            parent=self.root)
+        messagebox.showinfo(t("about_title"), t("about_body"), parent=self.root)
 
 
 def main():

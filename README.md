@@ -14,6 +14,7 @@ Built with Python + Tkinter. **No TMDB or IMDb required** — all metadata can b
 - Manage season and episode counts and the episode list; auto-generate episodes from `SxxExx` filenames
 - Switch between movie and TV show modes while keeping all entered information
 - Import and preview images, rotate covers, and assign them to poster / fanart / banner and other slots
+- **Bilingual interface (Chinese / English)** — switch anytime from the dropdown in the top-right; preference is saved automatically
 
 ## Getting Started
 
