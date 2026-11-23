@@ -1,0 +1,7 @@
+# 强制文本文件的换行符规范，避免跨平台/克隆后启动脚本失效
+*.bat text eol=crlf
+*.py  text eol=lf
+*.md  text eol=lf
+*.txt text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf

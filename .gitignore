@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 内置依赖目录（体积大且为 Windows 专用二进制，按需自行放置）
+_deps/
+
+# 示例媒体素材（视频/图片）
+示例媒体文件夹/
+*.mkv
+*.mp4
+*.avi
+*.mov
+*.ts
+*.m2ts
+*.wmv
+*.flv
+*.webm
+*.rmvb
+*.m4v
+*.iso
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
