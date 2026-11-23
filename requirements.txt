@@ -1,0 +1,2 @@
+# Python dependencies
+Pillow>=11.0,<12
